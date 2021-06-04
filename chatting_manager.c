@@ -7,17 +7,17 @@
 #include <sys/time.h>
 #include <sys/select.h>
 
-#define MAX_BUF	1024
+#define MAX_BUF 1024
 #define MAX_SOCK 50
-#define TTL 5  //time to live
+#define TTL 5 //time to live
 
 int main(int argc, char **argv)
 {
-    /**************/
-    int m_sockfd; //multicast socket
+    /*************
+    int m_sockfd;  //multicast socket
     int hb_sockfd; //heartbeat socket
-    
-    /**************/
+
+    *************/
 
     int server_sockfd, client_sockfd, sockfd;
     int state, client_len;
@@ -34,11 +34,15 @@ int main(int argc, char **argv)
     state = 0;
 
     //error
-    if(argc!=2) {
-        printf("Usage : %s <port>\n", argv[0]); exit(1); 
+    if (argc != 2)
+    {
+        printf("Usage : %s <port>\n", argv[0]);
+        exit(1);
     }
-    if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) { 
-        perror("socket error : "); exit(0); 
+    if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        perror("socket error : ");
+        exit(0);
     }
     //
 
@@ -50,14 +54,18 @@ int main(int argc, char **argv)
     setsockopt(server_sockfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof(on));
 
     state = bind(server_sockfd, (struct sockaddr *)&serveraddr,
-            sizeof(serveraddr));
-    if (state == -1) {
-        perror("bind error : "); exit(0);
+                 sizeof(serveraddr));
+    if (state == -1)
+    {
+        perror("bind error : ");
+        exit(0);
     }
 
     state = listen(server_sockfd, 5);
-    if (state == -1) {
-        perror("listen error : "); exit(0);
+    if (state == -1)
+    {
+        perror("listen error : ");
+        exit(0);
     }
 
     client_sockfd = server_sockfd;
@@ -66,53 +74,53 @@ int main(int argc, char **argv)
     max_client = -1;
     maxfd = server_sockfd;
 
-   for (i = 0; i < MAX_SOCK; i++) {
+    for (i = 0; i < MAX_SOCK; i++)
+    {
         client[i] = -1;
     }
 
-    FD_ZERO(&readfds); //readfds reset
+    FD_ZERO(&readfds);               //readfds reset
     FD_SET(server_sockfd, &readfds); //server socket open
-    
-    //
-    FD_SET(m_sockfd, &readfds); //multicast socket open
-    FD_SET(hb__sockfd, &readfds); //heartbeat socket open
-    //
+
+    /*
+    FD_SET(m_sockfd, &readfds);   //multicast socket open
+    FD_SET(hb_sockfd, &readfds); //heartbeat socket open
+    */
 
     printf("\nTCP Server Starting ... \n\n\n");
     fflush(stdout);
 
-    while(1)
+    while (1)
     {
-        allfds = readfds;  //readfds backup
-        state = select(maxfd + 1 , &allfds, NULL, NULL, NULL);  //select**
-	
-	
-	
+        allfds = readfds;                                     //readfds backup
+        state = select(maxfd + 1, &allfds, NULL, NULL, NULL); //select**
 
-
-	// Server Socket - accept from client
-        if (FD_ISSET(server_sockfd, &allfds)) {
+        // Server Socket - accept from client
+        if (FD_ISSET(server_sockfd, &allfds))
+        {
             client_len = sizeof(clientaddr);
             client_sockfd = accept(server_sockfd,
-                    (struct sockaddr *)&clientaddr, &client_len);
+                                   (struct sockaddr *)&clientaddr, &client_len);
             printf("\nconnection from (%s , %d)",
-                    inet_ntoa(clientaddr.sin_addr),ntohs(clientaddr.sin_port));
+                   inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
 
             for (i = 0; i < MAX_SOCK; i++)
             {
-                if (client[i] < 0) {
+                if (client[i] < 0)
+                {
                     client[i] = client_sockfd;
-                    printf("\nclientNUM=%d\nclientFD=%d\n", i+1, client_sockfd);
+                    printf("\nclientNUM=%d\nclientFD=%d\n", i + 1, client_sockfd);
                     break;
                 }
             }
 
             printf("accept [%d]\n", client_sockfd);
             printf("===================================\n");
-            if (i == MAX_SOCK) {
+            if (i == MAX_SOCK)
+            {
                 perror("too many clients\n");
             }
-            FD_SET(client_sockfd,&readfds);
+            FD_SET(client_sockfd, &readfds);
 
             if (client_sockfd > maxfd)
                 maxfd = client_sockfd;
@@ -122,13 +130,13 @@ int main(int argc, char **argv)
 
             if (--state <= 0)
                 continue;
-
         }
 
-	// client socket check
+        // client socket check
         for (i = 0; i <= max_client; i++)
         {
-            if ((sockfd = client[i]) < 0) {
+            if ((sockfd = client[i]) < 0)
+            {
                 continue;
             }
 
@@ -136,22 +144,28 @@ int main(int argc, char **argv)
             {
                 memset(buf, 0, MAX_BUF);
 
-		// Disconnet from Client 
-                if (read(sockfd, buf, MAX_BUF) <= 0) {
-                    printf("Close sockfd : %d\n",sockfd);
-            	    printf("===================================\n");
+                // Disconnect from Client
+                if (read(sockfd, buf, MAX_BUF) <= 0)
+                {
+                    printf("Close sockfd : %d\n", sockfd);
+                    printf("===================================\n");
                     close(sockfd);
                     FD_CLR(sockfd, &readfds);
                     client[i] = -1;
                 }
-		else {
-               		printf("[%d]RECV: %s\n", sockfd, buf);
-                	write(sockfd, buf, MAX_BUF);
-			}
+                else
+                {
+                    printf("[%d]RECV: %s\n", sockfd, buf);
+                    for(int j = 0; j <= max_client; j++ ){
+                        if(client[j] == -1) continue;
+                        write(client[j], buf, MAX_BUF);
+                        printf("Sent to client[%d]\n", client[j]);
+                    }
+                }
 
                 if (--state <= 0)
                     break;
             }
         } // for
-    } // while
+    }     // while
 }
