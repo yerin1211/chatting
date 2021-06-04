@@ -1,0 +1,5 @@
+*
+!.gitignore
+!README.md
+!chatting_manager.c
+!client.c
