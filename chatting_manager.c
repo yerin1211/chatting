@@ -11,6 +11,13 @@
 #define MAX_SOCK 50
 #define TTL 5 //time to live
 
+#define CMD_SIZE 4
+#define NAME_SIZE 30
+#define MSG_SIZE 1024
+
+int client[MAX_SOCK];
+
+
 int main(int argc, char **argv)
 {
     /*************
@@ -22,7 +29,8 @@ int main(int argc, char **argv)
     int server_sockfd, client_sockfd, sockfd;
     int state, client_len;
     int i, max_client, maxfd;
-    int client[MAX_SOCK];
+
+    int ttl = TTL;
 
     struct sockaddr_in clientaddr, serveraddr;
     struct timeval tv;
@@ -52,6 +60,7 @@ int main(int argc, char **argv)
     serveraddr.sin_port = htons(atoi(argv[1])); //port
 
     setsockopt(server_sockfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof(on));
+    setsockopt(server_sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
     state = bind(server_sockfd, (struct sockaddr *)&serveraddr,
                  sizeof(serveraddr));
@@ -96,6 +105,7 @@ int main(int argc, char **argv)
         state = select(maxfd + 1, &allfds, NULL, NULL, NULL); //select**
 
         // Server Socket - accept from client
+        // 클라이언트 연결
         if (FD_ISSET(server_sockfd, &allfds))
         {
             client_len = sizeof(clientaddr);
@@ -106,9 +116,9 @@ int main(int argc, char **argv)
 
             for (i = 0; i < MAX_SOCK; i++)
             {
-                if (client[i] < 0)
+                if (client[i] < 0)  //클라이언트 번호 설정이 안된곳 찾음
                 {
-                    client[i] = client_sockfd;
+                    client[i] = client_sockfd; 
                     printf("\nclientNUM=%d\nclientFD=%d\n", i + 1, client_sockfd);
                     break;
                 }
@@ -116,7 +126,7 @@ int main(int argc, char **argv)
 
             printf("accept [%d]\n", client_sockfd);
             printf("===================================\n");
-            if (i == MAX_SOCK)
+            if (i == MAX_SOCK)  //클라이언트가 너무 많이 접속했을때
             {
                 perror("too many clients\n");
             }
@@ -133,33 +143,50 @@ int main(int argc, char **argv)
         }
 
         // client socket check
+        // 클라이언트와 연결 여부 체크
         for (i = 0; i <= max_client; i++)
         {
-            if ((sockfd = client[i]) < 0)
+            sockfd = client[i];
+            if (sockfd < 0)
             {
                 continue;
             }
 
+            // allfds에 sockfd가 저장되어 있음
+            // 즉, sockfd가 accepted된 클라이언트일 때
             if (FD_ISSET(sockfd, &allfds))
             {
                 memset(buf, 0, MAX_BUF);
 
-                // Disconnect from Client
-                if (read(sockfd, buf, MAX_BUF) <= 0)
+                if (read(sockfd, buf, MAX_BUF) <= 0) // 메시지를 읽을 클라이언트가 사라짐
                 {
                     printf("Close sockfd : %d\n", sockfd);
                     printf("===================================\n");
+
+                    // Disconnect from Client
                     close(sockfd);
                     FD_CLR(sockfd, &readfds);
                     client[i] = -1;
                 }
-                else
+                else  // 메시지 읽어오기 성공
                 {
                     printf("[%d]RECV: %s\n", sockfd, buf);
-                    for(int j = 0; j <= max_client; j++ ){
-                        if(client[j] == -1) continue;
+                    
+
+                    // 모든 클라이언트에 수신받은 메시지 전송
+                    for (int j = 0; j <= max_client; j++)
+                    {
+                        if (client[j] == -1) continue;
                         write(client[j], buf, MAX_BUF);
                         printf("Sent to client[%d]\n", client[j]);
+                    }
+
+                    // 모든 클라이언트에 UDP 메시지 전송
+                    for (int j = 0; j <= max_client; j++)
+                    {
+                        if (client[j] == -1) continue;
+                        sendto(client[j], buf, MAX_BUF, 0, (struct sockaddr *)&clientaddr, client_len);
+                        printf("Sent UDPMSG to client[%d]\n", client[j]);
                     }
                 }
 
