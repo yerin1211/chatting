@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
 {
     char buf[1024];
     int state;
+    int port;
 
     //timer 설정
     struct timeval tv;  
@@ -48,16 +49,15 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+    port = atoi(argv[2]);
 
     // ip, port 정보 보내는 소켓
     send_sock = socket(PF_INET, SOCK_DGRAM, 0);
     memset(&adr, 0, sizeof(adr));
     sadr.sin_family = AF_INET;
-    sadr.sin_addr.s_addr = inet_addr(argv[1]);
-    sadr.sin_port = htons(atoi(argv[2]));
+    sadr.sin_addr.s_addr = inet_addr("239.0.100.1");
+    sadr.sin_port = htons(port);
 
-    on = 0;
-    //	setsockopt(send_sock, IPPROTO_IP, IP_MULTICAST_LOOP, &on, sizeof(on));
     setsockopt(send_sock, IPPROTO_IP, IP_MULTICAST_TTL, (void *)&time_live, sizeof(time_live));
 
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
     memset(&serv_adr, 0, sizeof(serv_adr));
     serv_adr.sin_family = AF_INET;
     serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_adr.sin_port = htons(atoi(argv[1]));
+    serv_adr.sin_port = htons(port+1);
 
     if (bind(serv_sock, (struct sockaddr *)&serv_adr, sizeof(serv_adr)) == -1)
         printf("bind() error");
@@ -92,14 +92,17 @@ int main(int argc, char *argv[])
             exit(0);
             break;
         case 0:
-            printf("Time over (2sec)\n");
+            printf("Time over (3sec)\n");
 
-            sprintf(buf, "127.0.0.1");
-            sprintf(&buf[IP_SIZE], "5000");
+            memset(buf, 0, sizeof(buf));
+            strcpy(buf, argv[1]);
+            sprintf(&buf[IP_SIZE], "%d", port+1);
             //udp 메시지 전송
-            sendto(send_sock, buf, BUF_SIZE, 0, (struct sockaddr *)&sadr, sizeof(sadr));
+            if (sendto(send_sock, buf, BUF_SIZE, 0, (struct sockaddr *)&sadr, sizeof(sadr)) != -1){
+                printf("UDP 메시지 전송 성공\n");
+            }
 
-            tv.tv_sec = 5; 
+            tv.tv_sec = 3; 
             tv.tv_usec = 0;
 
             break;
@@ -107,7 +110,9 @@ int main(int argc, char *argv[])
             if (FD_ISSET(serv_sock, &readfds))
             {
                 //하트비트 온거 받는다
-                printf("하트비트수신\n");
+                memset(buf, 0, sizeof(buf));
+                recvfrom(serv_sock, buf, BUF_SIZE, 0,0, 0);
+                printf("하트비트수신 : %s %s\n", buf, &buf[20]);
             }
             break;
         }
