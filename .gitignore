@@ -3,3 +3,5 @@
 !README.md
 !chatting_manager.c
 !client.c
+!clichat.c
+!select_timer.c
