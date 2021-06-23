@@ -83,6 +83,17 @@ int main(int argc, char *argv[])
 
     port = atoi(argv[2]);
 
+	// client init
+	int i=0;
+	for ( i=0; i< MAX_CLIENT ; i++ ) {
+		client[i].flag = 0;
+		client[i].port =0;
+		client[i].state =0;
+		client[i].live_count =0;
+		memset(&client[i].name, 0x00, NAME_SIZE);
+		memset(&client[i].ip, 0x00, IP_SIZE);
+	}
+
     // ip, port 정보 보내는 소켓
     send_sock = socket(PF_INET, SOCK_DGRAM, 0);
     memset(&adr, 0, sizeof(adr));
