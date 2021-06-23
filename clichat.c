@@ -197,7 +197,18 @@ int main(int argc, char *argv[])
 					// command mode
 					if ( strncmp(buf, "cmd", 3) == 0 ) {
 						printf("CMD> %s",&buf[4]);
-						
+						//명령어 cmd connect ip
+						if(strncmp(&buf[4], "connect", 7) == 0){ // connect
+							//그 ip주소에 해당하는 사용자의 state가 0인지 확인한다.
+							//대상과 연결 (내가 서버)
+						}
+						//명령어 cmd quit
+						else if(strncmp(&buf[4], "quit", 4) == 0){  //quit
+							//연결된 대상과 연결 끊기
+						}
+						else {
+							printf("명령어가 없습니다!\n");
+						}
 						// add command 
 
 					}
@@ -208,6 +219,8 @@ int main(int argc, char *argv[])
 							write(new_clisock, msg, BUF_SIZE);
 						else if ( myinfo.state == CHAT_CLIENT_DOING )
 							write(tcp_clisock, msg, BUF_SIZE);
+						else
+							printf("채팅 서버와 연결되어 있지 않습니다!\n");
 					}
 					
 

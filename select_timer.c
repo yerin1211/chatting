@@ -135,6 +135,21 @@ int main(int argc, char *argv[])
                 printf("UDP 메시지 전송 성공\n");
             }
 
+            for(int i = 0; i < MAX_CLIENT; i++){
+                if(client[i].flag == 1) {
+                        //모든 IP가 저장된 클라이언트의 카운트를 올린다
+                        client[i].live_count++;
+                    }
+
+                //3번동안 응답이 없는 클라이언트
+                if(client[i].live_count == 3){
+                    //disconnect
+                    memset(&client[i], 0, sizeof(CLIENT));
+                    printf("사용자[%d]와의 연결이 끊어졌습니다.\n", i);
+                    client[i].flag = 0;
+                }
+            }
+
             tv.tv_sec = 2; 
             tv.tv_usec = 0;
 
@@ -166,8 +181,10 @@ int main(int argc, char *argv[])
                         printf("기존 사용자[%d] : name[%s] ip[%s] port[%d] state[%d]\n", i, client[i].name, client[i].ip, client[i].port, client[i].state);
                         check = 1;
                     }
+                }
+                for(int i = 0; i < MAX_CLIENT; i++){
                     //IP가 저장되지 않은 클라이언트의 하트비트(최초 접속)을 수신함
-                    else if(client[i].flag == 0 && check == 0){
+                    if(client[i].flag == 0 && check == 0){
                         strcpy(client[i].name, buf);
                         strcpy(client[i].ip, &buf[NAME_SIZE]);
                         client[i].port = atoi(&buf[NAME_SIZE+IP_SIZE]);
@@ -177,22 +194,6 @@ int main(int argc, char *argv[])
                         printf("새로운 사용자[%d] : name[%s] ip[%s] port[%d] state[%d]\n", i, client[i].name, client[i].ip, client[i].port, client[i].state);
                         check = 1;
                     } 
-                    
-                    
-                    if(client[i].flag == 1) {
-                        //모든 IP가 저장된 클라이언트의 카운트를 올린다
-                        client[i].live_count++;
-                    }
-
-                    //3번동안 응답이 없는 클라이언트
-                    if(client[i].live_count == 3){
-                        //disconnect
-                        memset(&client[i], 0, sizeof(CLIENT));
-                        printf("사용자[%d]와의 연결이 끊어졌습니다.\n", i);
-                        client[i].flag = 0;
-                    }
-
-                    
                 }
 
             }
